@@ -1,4 +1,6 @@
+import sys
 import random
+import base64
 import click
 import getkey
 
@@ -35,7 +37,7 @@ class Square:
 	
 	def generate_line(self):
 		global do_display_colors
-		return click.style(self.fill_character * self.width, fg=self.foreground_color if do_display_colors else "reset", bg=self.background_color if do_display_colors else "reset")
+		return click.style(self.fill_character * self.width, fg=(self.foreground_color if do_display_colors else "reset"), bg=self.background_color if do_display_colors else "reset")
 	
 	def generate_lines(self):
 		return [self.generate_line() for _ in range(self.height)]
@@ -397,22 +399,32 @@ new_tile = random.choice(new_tiles)
 board.add_tile(new_tile, new_tile.starting_row_index, new_tile.starting_column_index)
 input_character = None
 characters_typed = ""
-printable_characters = "abcdefghijklmnopqrstuvwxyz1234567890 .,<>;:/?'\"[]{}\\|-_=+!@#$%^&*()`~"
+printable_characters = "abcdefghijklmnopqrstuvwxyz1234567890 .,<>;:/?'\"[]{}\\|-_=+!@#$%^&()`~"
 global do_blink
 global do_display_colors
 do_blink = False
 do_display_colors = False
+banned_words = [b"ZnVjaw==", b"c2hpdA==", b"Y3VudA==", b"ZGljaw==", b"YXNz"]
 while input_character != "q":
 	click.clear()
 	for line in board.generate_lines():
 		click.echo(line)
-	print(characters_typed)
+	click.echo(characters_typed)
 	if "blink" in characters_typed:
 		do_blink = True
 	if "color" in characters_typed:
 		do_display_colors = True
-	input_character = getkey.getkey()
-	characters_typed += input_character if input_character.lower() in printable_characters else ""
+		characters_typed = characters_typed.replace("*", click.style("*", fg="red"))
+	input_character = getkey.getkey().lower()
+	characters_typed += input_character if input_character in printable_characters else ""
+	for banned_word in banned_words:
+		actual_banned_word = base64.b64decode(banned_word).decode("utf-8")
+		if actual_banned_word in characters_typed:
+			characters_typed = characters_typed.replace(actual_banned_word, click.style("*", fg=("red" if do_display_colors else "reset")) * len(actual_banned_word))
+#			click.clear()
+#			click.secho("No bad words allowed!", fg="red", bold=True)
+#			click.secho("Press any key to continue.", blink=True)
+#			click.pause(info="")
 	if input_character == getkey.keys.W:
 		board.rotate_interactive_squares()
 		continue
