@@ -34,7 +34,8 @@ class Square:
 		return self.row_offset == 0 and self.column_offset == 0
 	
 	def generate_line(self):
-		return click.style(self.fill_character * self.width, fg=self.foreground_color, bg=self.background_color)
+		global do_display_colors
+		return click.style(self.fill_character * self.width, fg=self.foreground_color if do_display_colors else "reset", bg=self.background_color if do_display_colors else "reset")
 	
 	def generate_lines(self):
 		return [self.generate_line() for _ in range(self.height)]
@@ -366,20 +367,22 @@ class Board:
 			self.add_tile(new_tile, new_tile.starting_row_index, new_tile.starting_column_index)
 	
 	def generate_border_line(self):
+		global do_blink
 		line_str = self.intersection_character
 		for _ in range(self.width):
 			line_str += self.horizontal_character * self.cell_width
 			line_str += self.intersection_character
-		return click.style(line_str)
+		return click.style(line_str, blink=do_blink)
 	
 	def generate_lines(self):
+		global do_blink
 		lines = [self.generate_border_line()]
 		for row_index, row in enumerate(self.squares):
 			for cell_line_index in range(self.cell_height):
-				line = click.style(self.vertical_character)
+				line = click.style(self.vertical_character, blink=do_blink)
 				for column_index, square in enumerate(row):
 					line += click.style(" " * self.cell_width) if square == None else square.generate_line()
-					line += click.style(self.vertical_character)
+					line += click.style(self.vertical_character, blink=do_blink)
 				lines.append(line)
 			lines.append(self.generate_border_line())
 		return lines
@@ -393,20 +396,32 @@ new_tiles = [ITile(board.cell_width, board.cell_height), OTile(board.cell_width,
 new_tile = random.choice(new_tiles)
 board.add_tile(new_tile, new_tile.starting_row_index, new_tile.starting_column_index)
 input_character = None
+characters_typed = ""
+printable_characters = "abcdefghijklmnopqrstuvwxyz1234567890 .,<>;:/?'\"[]{}\\|-_=+!@#$%^&*()`~"
+global do_blink
+global do_display_colors
+do_blink = False
+do_display_colors = False
 while input_character != "q":
 	click.clear()
 	for line in board.generate_lines():
 		click.echo(line)
+	print(characters_typed)
+	if "blink" in characters_typed:
+		do_blink = True
+	if "color" in characters_typed:
+		do_display_colors = True
 	input_character = getkey.getkey()
-	if input_character == getkey.keys.UP:
+	characters_typed += input_character if input_character.lower() in printable_characters else ""
+	if input_character == getkey.keys.W:
 		board.rotate_interactive_squares()
 		continue
-	elif input_character == getkey.keys.DOWN:
+	elif input_character == getkey.keys.S:
 		board.move_interactive_squares(1, 0)
-	elif input_character == getkey.keys.LEFT:
+	elif input_character == getkey.keys.A:
 		board.move_interactive_squares(0, -1)
 		continue
-	elif input_character == getkey.keys.RIGHT:
+	elif input_character == getkey.keys.D:
 		board.move_interactive_squares(0, 1)
 		continue
 	elif input_character == getkey.keys.SPACE:
